@@ -1,0 +1,30 @@
+<!--<ion-view hide-nav-bar="true" ng-init="initLogin()" class="bgblue" id="SunoPosCafe" ng-cloak>-->
+<ion-view hide-nav-bar="true" class="bgblue" id="SunoPosCafe" ng-cloak>
+  <ion-content class="bgblue padding padding-top-40">
+    <div class="logo text-center"><img src="img/logo.png"/> </div>
+    <div ng-show="!hasAccount" class="width-320">
+      <form ng-submit="doLogin()" class="padding-top-20" id="loginFrm">
+        <div class="list list-inset">
+          <label class="item item-input">
+            <i class="icon ion-ios-person placeholder-icon"></i>
+            <input type="text" id="username" autocomplete="off" placeholder="Tài khoản đăng nhập" ng-model="loginData.username">
+          </label>
+          <label class="item item-input">
+            <i class="icon ion-ios-locked-outline placeholder-icon"></i>
+            <input type="password" id="password" autocomplete="off" placeholder="Mật khẩu" ng-model="loginData.password">
+          </label>
+        </div>
+        <button class="button button-block button-light font14" type="submit">Đăng nhập</button>
+      </form>
+
+      <div class="text-center"><button on-tap="openLink('https://auth.suno.vn/dang-ky/')" class="button button-clear button-light font14 colwhite">Đăng ký</button> <button on-tap="openLink('https://auth.suno.vn/Account/ForgotPwd')" class="button button-clear button-light font14 colwhite">Quên mật khẩu</button></div>
+    </div>
+    <div ng-show="hasAccount" class="width-320">
+      <div class="font14 text-center padding-top-60 colwhite">Đăng nhập tài khoản : <b>{{displayName}}</b></div>
+      <button class="button button-block button-light font14" on-tap="doLogin()">Đăng nhập</button>
+      <button class="button button-block button-light button-clear font14" on-tap="resetUser()">Đăng nhập bằng tài khoản khác</button>
+    </div>
+  </ion-content>
+  <!-- align to the bottom of the page -->
+
+</ion-view>
