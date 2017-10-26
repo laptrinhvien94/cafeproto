@@ -75,7 +75,7 @@ function LoginCtrl($q, $scope, $rootScope, $http, AuthFactory, $state, $ionicSid
                     }
                     $state.go('pos');
                 }
-            }, 10000000);
+            }, 2000);
         } else { //Chưa đăng nhập
             $scope.resetUser();
             $scope.hasAccount = false;

@@ -298,11 +298,28 @@ SunoSaleOrderCafe.prototype.cancelOrder = function() {
 /*
     Description: Xóa đơn hàng.
 */
-SunoSaleOrderCafe.prototype.deleteOrder = function(uid) {
+SunoSaleOrderCafe.prototype.deleteOrder = function (uid) {
+    debugger;
     var self = this;
     if (self.saleOrders.length > 0) { 
+        //if (self.saleOrders.length == 1) {
+        //    self.cancelOrder();
+        //}
+        //else {
+        //    var index = self.saleOrders.findIndex(function(order){ return order.uid == uid;});
+        //    self.saleOrders.splice(index, 1);
+        //    self.saleOrder = self.saleOrders[index -1];
+        //    self.saleOrderUid = self.saleOrder.saleOrderUid;
+        //    self.promotions.splice(index, 1);
+        //    self.promotion = self.promotions[index - 1];
+        //}
         if (self.saleOrders.length == 1) {
-            self.cancelOrder();
+            var index = self.saleOrders.findIndex(function (order) { return order.uid == uid; });
+            self.saleOrders.splice(index, 1);
+            self.saleOrder = null;
+            self.saleOrderUid = null;
+            self.promotions.splice(index, 1);
+            self.promotion = null;
         }
         else {
             var index = self.saleOrders.findIndex(function(order){ return order.uid == uid;});

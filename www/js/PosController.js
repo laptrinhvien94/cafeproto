@@ -58,7 +58,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     //cafe version.
     var version = localStorage.getItem('version'); //Version của Suno Cafe.
     if (version == null) {
-        version = '2.0.0';
+        version = '2.0';
         localStorage.setItem('version', version);
     }
 
@@ -152,10 +152,12 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         return $SunoRequest.makeRestful(url, method, data)
             .then(function (data) {
                 $scope.isOnline = true;
+                $scope.$apply();
                 return true;
             })
             .catch(function (e) {
                 $scope.isOnline = false;
+                $scope.$apply();
                 return false;
             });
     }
@@ -182,7 +184,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     var showStackNotification = function (title, content, callback) {
         var stackNoti = $ionicPopup.alert({
             title: title,
-            template, content
+            template: content
         });
         stackNoti.then(function (response) {
             if (callback !== null && typeof callback === 'function') {
@@ -318,6 +320,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         return $SunoRequest.makeRestful(url, method, data)
             .then(function (data) {
                 $scope.companyInfo = data;
+                $scope.$apply();
                 return null;
             })
             .catch(function (e) {
@@ -487,6 +490,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $SunoRequest.makeRestful(url, method, data)
             .then(function (data) {
                 $scope.productItemList = data.items;
+                $scope.$apply();
             })
             .catch(function (e) {
                 console.log(e);
@@ -516,6 +520,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $SunoRequest.makeRestful(url, method, data)
             .then(function (data) {
                 $scope.productItemList = data.items;
+                $scope.$apply();
             })
             .catch(function (e) {
                 console.log(e);
@@ -636,8 +641,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     //revision: 0,
                     orderDetails: []
                 }
-            }],
-            startTime: null
+            }]
         }
         angular.copy(saleOrder, tableTAW.tableOrder[0].saleOrder);
         $scope.tables.push(tableTAW);
@@ -660,11 +664,9 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         tableStatus: 0,
                         tableOrder: [{
                             saleOrder: {
-                                //revision: 0,
                                 orderDetails: []
                             }
-                        }],
-                        startTime: null
+                        }]
                     }
                     angular.copy(saleOrder, t.tableOrder[0].saleOrder);
                     $scope.tables.push(t);
@@ -722,6 +724,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
                 if (!$scope.isSync) {
                     $scope.updateSyncSetting(true);
+                    $scope.$apply();
                 } else {
                     $scope.endSession();
                 }
@@ -775,8 +778,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         promotionOnItem: [],
                         promotionOnBill: []
                     }
-                }],
-                startTime: null
+                }]
             }
             angular.copy(saleOrder, tableTAW.tableOrder[0].saleOrder);
             $scope.tables.push(tableTAW);
@@ -1184,6 +1186,10 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 sesssionId: SunoGlobal.userProfile.sessionId,
                 authSessionId: SunoGlobal.userProfile.authSessionId
             };
+            $scope.settings = {
+                saleSetting: data[0].saleSetting
+            };
+
             $scope.authBootloader = {
                 rolesGranted: data[1].rolesGranted,
                 users: data[1].users
@@ -1299,8 +1305,8 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             if ($scope.tables && $scope.tables.length > 0 && $scope.currentStore.storeID) {
                 //console.log('fired');
                 //Mỗi khi có thay đổi trên hóa đơn thì cập nhật lại bàn đó dưới DB Local
-                utils.debounce(updateTableToDB, 300, false)();
-                //updateTableToDB();
+                utils.debounce(updateSelectedTableToDB, 300, false)();
+                //updateSelectedTableToDB();
                 ////LSFactory.set($scope.currentStore.storeID, {
                 ////    tables: $scope.tables,
                 ////    zone: $scope.tableMap
@@ -1318,7 +1324,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             if ($scope.tables && $scope.tables.length > 0 && $scope.currentStore.storeID) {
                 //Mỗi khi có thay đổi trên hóa đơn thì cập nhật lại bàn đó dưới DB Local
                 //console.log('fired');
-                utils.debounce(updateTableToDB, 300, false)();
+                utils.debounce(updateSelectedTableToDB, 300, false)();
                 ////LSFactory.set($scope.currentStore.storeID, {
                 ////    tables: $scope.tables,
                 ////    zone: $scope.tableMap
@@ -1543,12 +1549,15 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         $SunoSaleOrderCafe.saleOrders = [];
                         $scope.tables.forEach(function (t) {
                             t.tableOrder.forEach(function (order) {
-                                $SunoSaleOrderCafe.calculateOrder(order.saleOrder, order.saleOrder);
+                                if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                    $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, order.saleOrder);
+                                }
+                                else {
+                                    $SunoSaleOrderCafe.calculateOrder(order.saleOrder, order.saleOrder);
+                                }
                             });
                         });
-                        if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                            $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
-                        }
+
                         //console.log($scope.tables[3].tableOrder[0].saleOrder === $SunoSaleOrderCafe.saleOrder);
 
                         if (msg.tables && $scope.tables.length > 0) socketAction.process($scope.tables, $scope.unNoticeTable);
@@ -1927,19 +1936,28 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                     //Nếu chưa có order này trong ds orders, trường hợp báo bếp mới.
                                     if (orderIndex == null && $scope.tables[x].tableOrder[0].saleOrder.orderDetails.length > 0) {
                                         $scope.tables[x].tableOrder.push(msg.tables[0].tableOrder[0]);
-                                        $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
 
+                                        ////Nếu ở bàn đang được chọn có order đang được chọn thì trỏ lại cho đúng.
                                         if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                                            $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                            $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                        } else {
+                                            $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
                                         }
                                     }
                                     else if (orderIndex == null && $scope.tables[x].tableOrder[0].saleOrder.orderDetails.length == 0) {
                                         $scope.tables[x].tableOrder[0].saleOrder = msg.tables[0].tableOrder[0].saleOrder;
-                                        $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
 
                                         if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                                            $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                            $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
                                         }
+                                        else {
+                                            $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                        }
+
+                                        //$SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                        //if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                        //    $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                        //}
                                     }
                                     else {
 
@@ -2005,14 +2023,20 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                             //Cập nhật lại revision.
                                             z.revision = msg.tables[0].tableOrder[0].saleOrder.revision;
 
-                                            $SunoSaleOrderCafe.calculateOrder(z, z)
                                             $scope.tables[x].tableOrder[orderIndex].saleOrder = z;
 
                                             if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                                                $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                                $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, z);
+                                            }
+                                            else {
+                                                $SunoSaleOrderCafe.calculateOrder(z, z);
                                             }
                                         }
                                         else { //Cập nhật cho hàng hóa tách món kiểu trà sữa,...
+
+                                            if ($SunoSaleOrderCafe.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[0].saleOrder.saleOrderUuid) {
+                                                $scope.pinItem = null;
+                                            }
 
                                             //Điều chỉnh data cho phù hợp
                                             //B1: Merge log giữa client và server có distinct
@@ -2088,20 +2112,24 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                             z.revision = msg.tables[0].tableOrder[0].saleOrder.revision;
 
                                             $scope.tables[x].tableOrder[orderIndex].saleOrder = z;
-                                            //$timeout(function () {
-                                            //    $scope.watchCallback(null, null);
-                                            //}, 150);
-                                            //$scope.watchCallback(null, null);
+                                            if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                                $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, z);
+                                            }
+                                            else {
+                                                $SunoSaleOrderCafe.calculateOrder(z, z);
+                                            }
                                         }
                                     }
                                     
                                 }
                                 else {
                                     $scope.tables[x].tableOrder.push(msg.tables[0].tableOrder[0]);
-                                    $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
 
                                     if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                                        $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                        $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                    }
+                                    else {
+                                        $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
                                     }
                                 }
 
@@ -2111,44 +2139,45 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                 $scope.$apply();
 
                                 //Lưu vào DB Local
-                                DBTables.$queryDoc({
-                                    selector: {
-                                        'store': { $eq: $scope.currentStore.storeID },
-                                        'tableUuid': { $eq: msg.tables[0].tableUuid }
-                                    },
-                                    fields: ['_id', '_rev']
-                                })
-                                .then(function (data) {
-                                    var table = angular.copy(msg.tables[0]);
-                                    table._id = data.docs[0]._id;
-                                    table._rev = data.docs[0]._rev;
-                                    table.store = $scope.currentStore.storeID;
-                                    return DBTables.$addDoc(table);
-                                })
-                                .then(function (data) {
-                                    //console.log(data);
-                                })
-                                .catch(function (error) {
-                                    //console.log(error);
-                                    //Nếu bị conflict thì retry lại
-                                    DBTables.$queryDoc({
-                                        selector: {
-                                            'store': { $eq: $scope.currentStore.storeID },
-                                            'tableUuid': { $eq: msg.tables[0].tableUuid }
-                                        },
-                                        fields: ['_id', '_rev']
-                                    })
-                                    .then(function (data) {
-                                        var table = angular.copy(msg.tables[0]);
-                                        table._id = data.docs[0]._id;
-                                        table._rev = data.docs[0]._rev;
-                                        table.store = $scope.currentStore.storeID;
-                                        return DBTables.$addDoc(table);
-                                    })
-                                    .catch(function (e) {
-                                        console.log(e);
-                                    })
-                                });
+                                updateTableToDB(msg.tables[0]);
+                                //DBTables.$queryDoc({
+                                //    selector: {
+                                //        'store': { $eq: $scope.currentStore.storeID },
+                                //        'tableUuid': { $eq: msg.tables[0].tableUuid }
+                                //    },
+                                //    fields: ['_id', '_rev']
+                                //})
+                                //.then(function (data) {
+                                //    var table = angular.copy(msg.tables[0]);
+                                //    table._id = data.docs[0]._id;
+                                //    table._rev = data.docs[0]._rev;
+                                //    table.store = $scope.currentStore.storeID;
+                                //    return DBTables.$addDoc(table);
+                                //})
+                                //.then(function (data) {
+                                //    //console.log(data);
+                                //})
+                                //.catch(function (error) {
+                                //    //console.log(error);
+                                //    //Nếu bị conflict thì retry lại
+                                //    DBTables.$queryDoc({
+                                //        selector: {
+                                //            'store': { $eq: $scope.currentStore.storeID },
+                                //            'tableUuid': { $eq: msg.tables[0].tableUuid }
+                                //        },
+                                //        fields: ['_id', '_rev']
+                                //    })
+                                //    .then(function (data) {
+                                //        var table = angular.copy(msg.tables[0]);
+                                //        table._id = data.docs[0]._id;
+                                //        table._rev = data.docs[0]._rev;
+                                //        table.store = $scope.currentStore.storeID;
+                                //        return DBTables.$addDoc(table);
+                                //    })
+                                //    .catch(function (e) {
+                                //        console.log(e);
+                                //    })
+                                //});
 
                                 break;
                             }
@@ -2159,9 +2188,11 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         //Cập nhật lại bàn từ Server gửi về.
                         for (var x = 0; x < $scope.tables.length; x++) {
                             if ($scope.tables[x].tableUuid == msg.tables[0].tableUuid) {
-
                                 //Lặp qua 2 order mới tách.
                                 for (var y = 0; y < msg.tables[0].tableOrder.length; y++) {
+                                    if ($SunoSaleOrderCafe.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[y].saleOrder.saleOrderUuid) {
+                                        $scope.pinItem = null;
+                                    }
                                     var orderIndex = -1;
                                     orderIndex = $scope.tables[x].tableOrder.findIndex(function (order) { return order.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[y].saleOrder.saleOrderUuid });
 
@@ -2177,40 +2208,43 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                     else {
                                         $scope.tables[x].tableOrder[orderIndex] = msg.tables[0].tableOrder[y];
 
-                                        $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[y].saleOrder, msg.tables[0].tableOrder[y].saleOrder);
                                         if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
-                                            $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                                            $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[y].saleOrder);
+                                        }
+                                        else {
+                                            $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[y].saleOrder, msg.tables[0].tableOrder[y].saleOrder);
                                         }
                                     }
                                 }
-
-                                //Lưu vào DB Local bàn đó sau khi đã xử lý xong.
-                                DBTables.$queryDoc({
-                                    selector: {
-                                        'store': { $eq: $scope.currentStore.storeID },
-                                        'tableUuid': { $eq: msg.tables[0].tableUuid }
-                                    },
-                                    fields: ['_id', '_rev']
-                                })
-                                .then(function (data) {
-                                    //console.log(data);
-                                    var table = JSON.parse(JSON.stringify(msg.tables[0]));
-                                    table._id = data.docs[0]._id;
-                                    table._rev = data.docs[0]._rev;
-                                    table.store = $scope.currentStore.storeID;
-                                    return DBTables.$addDoc(table);
-                                })
-                                .then(function (data) {
-                                    //console.log(data);
-                                })
-                                .catch(function (error) {
-                                    console.log(error);
-                                });
 
                                 //Cập nhật lại trạng thái của bàn
                                 var tableStatus = tableIsActive($scope.tables[x]);
                                 $scope.tables[x].tableStatus = tableStatus ? 1 : 0;
                                 $scope.$apply();
+
+                                //Lưu vào DB Local bàn đó sau khi đã xử lý xong.
+                                updateTableToDB(msg.tables[0]);
+                                //DBTables.$queryDoc({
+                                //    selector: {
+                                //        'store': { $eq: $scope.currentStore.storeID },
+                                //        'tableUuid': { $eq: msg.tables[0].tableUuid }
+                                //    },
+                                //    fields: ['_id', '_rev']
+                                //})
+                                //.then(function (data) {
+                                //    //console.log(data);
+                                //    var table = JSON.parse(JSON.stringify(msg.tables[0]));
+                                //    table._id = data.docs[0]._id;
+                                //    table._rev = data.docs[0]._rev;
+                                //    table.store = $scope.currentStore.storeID;
+                                //    return DBTables.$addDoc(table);
+                                //})
+                                //.then(function (data) {
+                                //    //console.log(data);
+                                //})
+                                //.catch(function (error) {
+                                //    console.log(error);
+                                //});
                                 break;
                             }
                         }
@@ -2220,8 +2254,19 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         //Cập nhật lại bàn từ Server gửi về, vì chỉ gửi 1 bàn và 1 order nên ko cần lặp 2 vòng.
                         for (var x = 0; x < $scope.tables.length; x++) {
                             if ($scope.tables[x].tableUuid == msg.tables[0].tableUuid) {
+                                if ($SunoSaleOrderCafe.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[0].saleOrder.saleOrderUuid) {
+                                    $scope.pinItem = null;
+                                }
                                 var order = $scope.tables[x].tableOrder.find(function (order) { return order.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[0].saleOrder.saleOrderUuid });
+
                                 order.saleOrder = msg.tables[0].tableOrder[0].saleOrder;
+
+                                if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                    $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                }
+                                else {
+                                    $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                                }
                                 //Lưu vào DB Local
                                 DBTables.$queryDoc({
                                     selector: {
@@ -2249,6 +2294,10 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                 var tableStatus = tableIsActive($scope.tables[x]);
                                 $scope.tables[x].tableStatus = tableStatus ? 1 : 0;
                                 $scope.$apply();
+
+                                //Lưu vào DB
+                                updateTableToDB(msg.tables[0]);
+
                                 break;
                             }
                         }
@@ -2269,55 +2318,57 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
                             //Nếu có order là trường hợp Thanh toán hoặc là xóa trắng đơn hàng đã báo bếp.
                             if (orderIndex != -1) {
-                                //Xóa ra khỏi ds orders của bàn đó.
+                                debugger;
+                                //Xóa ra khỏi ds orders của bàn đó và trong Prototype.
                                 $scope.tables[x].tableOrder.splice(orderIndex, 1);
+                                $SunoSaleOrderCafe.deleteOrder(msg.tables[0].tableOrder[0].saleOrder.saleOrderUuid);
 
                                 //Nếu đang chọn xem order đó thì refresh lại.
                                 if ($scope.tableIsSelected.tableUuid == msg.tables[0].tableUuid && $scope.orderIndexIsSelected == orderIndex) {
-                                    //$scope.orderIndexIsSelected = 0;
-                                    //$scope.cancelOrder();
+
+                                    //Nếu bàn vẫn còn order sau khi đỡ xóa order kia thì trỏ về order sau cùng trong ds order.
                                     if ($scope.tableIsSelected.tableOrder.length > 0) {
                                         $scope.orderIndexIsSelected = $scope.tableIsSelected.tableOrder.length - 1;
                                         $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
                                     }
                                     else {
-                                        $SunoSaleOrderCafe.createNewOrder();
-                                        $scope.tableIsSelected.tableOrder.push({ saleOrder: $SunoSaleOrderCafe.saleOrder });
-                                        $scope.tableIsSelected.tableOrder[0].saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
-                                        $scope.tableIsSelected.tableOrder[0].saleOrder.tableName = $scope.tableIsSelected.tableName;
-                                        $scope.orderIndexIsSelected = 0;
+                                        //$SunoSaleOrderCafe.createNewOrder();
+                                        //$scope.tableIsSelected.tableOrder.push({ saleOrder: $SunoSaleOrderCafe.saleOrder });
+                                        //$scope.tableIsSelected.tableOrder[0].saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
+                                        //$scope.tableIsSelected.tableOrder[0].saleOrder.tableName = $scope.tableIsSelected.tableName;
+                                        //$scope.orderIndexIsSelected = 0;
+                                        createFirstOrder();
                                     }
                                 }
-                                //if ($scope.tables[x].tableOrder.length == 0) {
-                                //    $scope.tables[x].tableOrder.push({ saleOrder: angular.copy(saleOrder) });
-                                //}
+
                                 ////Cập nhật lại trạng thái của bàn
                                 var tableStatus = tableIsActive($scope.tables[x]);
                                 $scope.tables[x].tableStatus = tableStatus ? 1 : 0;
 
 
                                 //Lưu vào DB Local
-                                DBTables.$queryDoc({
-                                    selector: {
-                                        'store': { $eq: $scope.currentStore.storeID },
-                                        'tableUuid': { $eq: $scope.tables[x].tableUuid }
-                                    },
-                                    fields: ['_id', '_rev']
-                                })
-                                .then(function (data) {
-                                    //console.log(data);
-                                    var table = JSON.parse(JSON.stringify($scope.tables[x]));
-                                    table._id = data.docs[0]._id;
-                                    table._rev = data.docs[0]._rev;
-                                    table.store = $scope.currentStore.storeID;
-                                    return DBTables.$addDoc(table);
-                                })
-                                .then(function (data) {
-                                    //console.log(data);
-                                })
-                                .catch(function (error) {
-                                    console.log(error);
-                                });
+                                updateTableToDB(msg.tables[0]);
+                                //DBTables.$queryDoc({
+                                //    selector: {
+                                //        'store': { $eq: $scope.currentStore.storeID },
+                                //        'tableUuid': { $eq: $scope.tables[x].tableUuid }
+                                //    },
+                                //    fields: ['_id', '_rev']
+                                //})
+                                //.then(function (data) {
+                                //    //console.log(data);
+                                //    var table = JSON.parse(JSON.stringify($scope.tables[x]));
+                                //    table._id = data.docs[0]._id;
+                                //    table._rev = data.docs[0]._rev;
+                                //    table.store = $scope.currentStore.storeID;
+                                //    return DBTables.$addDoc(table);
+                                //})
+                                //.then(function (data) {
+                                //    //console.log(data);
+                                //})
+                                //.catch(function (error) {
+                                //    console.log(error);
+                                //});
 
                                 //Thông báo cho client về hóa đơn được thanh toán ở thiết bị khác.
                                 if (msg.msg) {
@@ -2348,9 +2399,30 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         //Cập nhật lại order cũ
                         var order = table.tableOrder.find(function (order) { return order.saleOrder.saleOrderUuid == msg.fromSaleOrderUuid });
                         if (order) {
-                            table.tableOrder.splice(table.tableOrder.indexOf(order), 1);
+                            var index = table.tableOrder.indexOf(order);
+                            table.tableOrder.splice(index, 1);
+                            $SunoSaleOrderCafe.deleteOrder(msg.fromSaleOrderUuid);
+
+                            //Nếu bàn vẫn còn order sau khi đỡ xóa order kia thì trỏ về order sau cùng trong ds order.
+                            if ($scope.tableIsSelected.tableOrder.length > 0) {
+                                $scope.orderIndexIsSelected = $scope.tableIsSelected.tableOrder.length - 1;
+                                $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                            }
+                            else {
+                                createFirstOrder();
+                            }
+
                             var tableStatus = tableIsActive(table);
                             table.tableStatus = tableStatus ? 1 : 0;
+
+                            //Kiểm tra xem phải order của người dùng này và người dùng này có đang xem order này hay không?
+                            var isViewing = order.saleOrder.createdBy == SunoGlobal.userProfile.userId && table.tableUuid == $scope.tableIsSelected.tableUuid && index == $scope.orderIndexIsSelected;
+                            if (isViewing) {
+                                //Thông báo
+                                var action = msg.info.action == 'G' ? 'ghép' : 'chuyển';
+                                var msgContent = '<p style="text-align:center;">Đơn hàng của bạn tại bàn <b>' + table.tableName + '</b> mà bạn vừa xem đã được ' + action + ' sang bàn <b>' + msg.tables[0].tableName + '</b> ở một thiết bị khác.</p>';
+                                showStackNotification('Thông báo', msgContent, null);
+                            }
                         }
                     }
 
@@ -2359,13 +2431,28 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     if (table) {
                         var order = table.tableOrder.find(function (order) { return order.saleOrder.saleOrderUuid == msg.tables[0].tableOrder[0].saleOrder.saleOrderUuid; });
                         if (order) {
+                            if ($SunoSaleOrderCafe.saleOrder.saleOrderUuid == order.saleOrder.saleOrderUuid) {
+                                $scope.pinItem = null;
+                            }
                             //Nếu order có sẵn là trường hợp ghép hóa đơn
                             order.saleOrder = msg.tables[0].tableOrder[0].saleOrder;
+                            if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                            } else {
+                                $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                            }
+
                             table.tableStatus = 1;
                         }
                         else {
                             //Nếu order không có là trường hợp đổi bàn
                             table.tableOrder.push(msg.tables[0].tableOrder[0]);
+                            if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]) {
+                                $SunoSaleOrderCafe.calculateOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                            } else {
+                                $SunoSaleOrderCafe.calculateOrder(msg.tables[0].tableOrder[0].saleOrder, msg.tables[0].tableOrder[0].saleOrder);
+                            }
+
                             table.tableStatus = 1;
                         }
                         //$scope.tables[$scope.tables.indexOf(table)].tableOrder = msg.tables[0].tableOrder;
@@ -2694,24 +2781,24 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         return array;
     }
 
-    var watchExpressions = [
-      "selectedItem.unitPrice",
-      "selectedItem.discountIsPercent",
-      "selectedItem.discount",
-      "selectedItem.discountInPercent",
-      "tableIsSelected.tableOrder",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.IsDiscountPercent",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.DiscountInPercent",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.discount",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].quantity",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].newOrderCount",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].discount",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.customer",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.subFee",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.SubFeeInPercent",
-      "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.IsSubFeePercent"
-    ];
+    //var watchExpressions = [
+    //  "selectedItem.unitPrice",
+    //  "selectedItem.discountIsPercent",
+    //  "selectedItem.discount",
+    //  "selectedItem.discountInPercent",
+    //  "tableIsSelected.tableOrder",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.IsDiscountPercent",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.DiscountInPercent",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.discount",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].quantity",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].newOrderCount",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails[tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex].discount",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.customer",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.subFee",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.SubFeeInPercent",
+    //  "tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.IsSubFeePercent"
+    //];
 
     $ionicPopover.fromTemplateUrl('store-list.html', {
         scope: $scope
@@ -2758,18 +2845,13 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         return i % 5;
     }
 
-    //Tham số isNeedToChange dùng để tránh trường hợp mỗi lần các phím arrows thì biến isInTable bị thay đổi k kiểm soát đc.
     //Hàm chuyển giao diện và các xử lý liên quan khi chuyển giao diện.
     $scope.switchLayout = function () {
-        //$scope.leftviewStatus = !$scope.leftviewStatus;
-        //if (isNeedToChange) {   
-        //    $scope.isInTable = !$scope.isInTable;
-        //}
         //Khi đang ở bàn thì chuyển món, đồng thời tạo order nếu chưa có order
         if ($scope.isInTable) {
             //Chuyển giao diện
             $scope.isInTable = false;
-            //Xử lý
+            //Xử lý thêm order mới nếu trống.
             if ($scope.tableIsSelected.tableOrder.length == 0) {
                 createFirstOrder();
             }
@@ -2778,12 +2860,15 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 $scope.orderIndexIsSelected = 0;
                 $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[0].saleOrder.saleOrderUuid);
             }
-            $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
+            if (SunoGlobal.printer.ordering != 'desc') {
+                $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
+            }
         }
         //Khi đang ở món thì chuyển sang bàn
         else {
             $scope.isInTable = true;
         }
+        $scope.pinItem = null;
         //Build lại index cho đúng với từng context
         buildHotKeyIndex();
         //Cấu hình lại
@@ -2799,7 +2884,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $scope.tableIsSelected.tableOrder[0].saleOrder.tableName = $scope.tableIsSelected.tableName;
         //Trỏ lại cho đúng với Prototype.
         $scope.orderIndexIsSelected = 0;
-        $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]);
+        //$SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected]);
     }
 
     $scope.showList = function () {
@@ -2818,7 +2903,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 $scope.currentZone = {
                     tableStatus: z
                 };
-                //$scope.leftviewStatus = false;
                 $scope.isInTable = true;
                 break;
             case 'zone':
@@ -2872,6 +2956,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
     $scope.openTableTakeAway = function () {
         $scope.tableIsSelected = $scope.tables[0];
+        $scope.pinItem = null;
         //$scope.orderIndexIsSelected = 0;
 
         //if ($scope.tableIsSelected.tableOrder.length == 0) {
@@ -2903,7 +2988,9 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             $SunoSaleOrderCafe.selectOrder(orderID);
             $scope.orderIndexIsSelected = index;
             $scope.pinItem = null;
-            $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
+            if (SunoGlobal.printer.ordering != 'desc') {
+                $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
+            }
         }
     }
 
@@ -2988,7 +3075,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
         // Chuyển status cho bàn mới thành active
         t.tableStatus = 1;
-        t.startTime = oldTable.startTime;
 
         // xóa order cũ tại bàn cũ
         //angular.copy(saleOrder, $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder);
@@ -2998,11 +3084,10 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         var isActived = tableIsActive($scope.tableIsSelected);
         if (!isActived) {
             $scope.tableIsSelected.tableStatus = 0;
-            // $scope.tableIsSelected.startTime = null;
         }
 
         //đổi bàn được chọn sang bàn mới và trỏ lại trong saleOrder prototype.
-        $scope.selectOrder(t.tableOrder[0].saleOrder.saleOrderUuid);
+        $SunoSaleOrderCafe.selectOrder(t.tableOrder[0].saleOrder.saleOrderUuid);
         $scope.tableIsSelected = t;
         $scope.orderIndexIsSelected = 0;
         $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.tableName = $scope.tableIsSelected.tableName;
@@ -3153,7 +3238,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         var tableStatus = tableIsActive($scope.tableIsSelected);
         if (tableStatus == false) {
             $scope.tableIsSelected.tableStatus = 0;
-            // $scope.tableIsSelected.startTime = null;
         }
 
         toaster.pop('success', "", 'Đã chuyển đơn hàng từ [' + $scope.oldTable.tableName + '] sang [' + $scope.newTable.tableName + ']');
@@ -3462,17 +3546,17 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     }
 
     $scope.createNewOrder = function () {
-        ////var temp = {};
-        ////temp.saleOrder = {};
-
-        ////angular.copy(saleOrder, temp.saleOrder);
+        $scope.pinItem = null;
+        //var temp = {};
+        //temp.saleOrder = {};
+        //angular.copy(saleOrder, temp.saleOrder);
         //var temp = {
         //    saleOrder: angular.copy(saleOrder)
         //};
         //temp.saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
         //$scope.tableIsSelected.tableOrder.push(temp);
         //$scope.changeOrder($scope.tableIsSelected.tableOrder.length - 1);
-        //// LSFactory.set('last-update', $scope.tables);
+
         $SunoSaleOrderCafe.createNewOrder();
         var saleOrder = { saleOrder: $SunoSaleOrderCafe.saleOrder };
         $scope.tableIsSelected.tableOrder.push(saleOrder);
@@ -3482,21 +3566,21 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     }
 
     $scope.cancelOrder = function () {
+        $scope.pinItem = null;
         if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length == 0) {
             if ($scope.tableIsSelected.tableOrder.length > 1) {
+                console.log(angular.copy($SunoSaleOrderCafe.saleOrders));
                 $scope.tableIsSelected.tableOrder.splice($scope.orderIndexIsSelected, 1);
                 $scope.orderIndexIsSelected = $scope.tableIsSelected.tableOrder.length - 1;
                 $SunoSaleOrderCafe.selectOrder($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.saleOrderUuid);
+                console.log(angular.copy($SunoSaleOrderCafe.saleOrders));
                 var isActived = tableIsActive($scope.tableIsSelected);
                 if (!isActived) {
-                    // $scope.tableIsSelected.startTime = null;
                     $scope.tableIsSelected.tableStatus = 0;
                 }
-                // LSFactory.set('last-update', $scope.tables);
             } else {
                 var isActived = tableIsActive($scope.tableIsSelected);
                 if (!isActived) {
-                    // $scope.tableIsSelected.startTime = null;
                     $scope.tableIsSelected.tableStatus = 0;
                 }
                 $scope.orderIndexIsSelected = 0;
@@ -3511,6 +3595,8 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     // var unGroupProduct = true;
 
     $scope.pickProduct = function (item) {
+        console.log('Is it the same reference', $SunoSaleOrderCafe.saleOrder === $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder);
+        console.log($SunoSaleOrderCafe.saleOrder);
         if (!item || !item.itemId) return;
 
         //Validate thông tin
@@ -3547,45 +3633,33 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             //}]
             //angular.copy(saleOrder, $scope.tableIsSelected.tableOrder[0].saleOrder);
             //$scope.tableIsSelected.tableOrder.push({ saleOrder: angular.copy(saleOrder) });
-            //$SunoSaleOrderCafe.createNewOrder();
-            //$scope.tableIsSelected.tableOrder.push({ saleOrder: $SunoSaleOrderCafe.saleOrder });
-            //$scope.tableIsSelected.tableOrder[0].saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
-            //$scope.tableIsSelected.tableOrder[0].saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
-            //$scope.tableIsSelected.tableOrder[0].saleOrder.tableName = $scope.tableIsSelected.tableName;
             createFirstOrder();
         }
 
         //if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length == 0 && !$scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.startTime)
         //    $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.startTime = new Date();
-        // Nếu hóa đơn trống thì khởi tạo
-        //if ($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length == 0) {
-        //    //var d = new Date();
-        //    // $scope.tableIsSelected.startTime = d;
-        //    $scope.tableIsSelected.tableStatus = 1;
-        //}
 
         //Thêm item vào danh sách details, thêm newOrderCount và lastInputedIndex.
-
         if ($scope.isUngroupItem) {
             //Xử lý cho hàng hóa tách món.
-            item.quantity = 1;
-            item.newOrderCount = 1;
+            var thisItem = angular.copy(item);
+            thisItem.quantity = 1;
+            thisItem.newOrderCount = 1;
+            thisItem.detailID = uuid.v1();
 
-            var flagItem = angular.copy(item);
-
-            flagItem.detailID = uuid.v1();
+            //Hàng hóa tính giờ
             if ($scope.hourService.isUse && !$scope.hourService.allProduct && $scope.hourService.itemArr.length > 0) {
                 var itemIndexArr = findIndex($scope.hourService.itemArr, 'itemId', item.itemId);
                 if (itemIndexArr != null) {
-                    flagItem.isServiceItem = true;
-                    $scope.startCounter(flagItem);
+                    thisItem.isServiceItem = true;
+                    $scope.startCounter(thisItem);
                 }
             }
             if ($scope.pinItem) {
-                flagItem.isChild = '—';
+                thisItem.isChild = '—';
                 var detailIndex = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex;
                 if (detailIndex !== undefined || detailIndex !== null) {
-                    flagItem.parentID = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails[detailIndex].detailID;
+                    thisItem.parentID = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails[detailIndex].detailID;
                 }
 
                 var itemDetail = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.filter(function (d) {
@@ -3597,7 +3671,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 //Nếu không có trong ds child của item được pin thì thêm vào. 
                 if (!itemDetail) {
                     //Thêm item vào vị trí $scope.selectedItemIndex + 1.
-                    $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.splice($scope.selectedItemIndex + 1, 0, flagItem);
+                    $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.splice($scope.selectedItemIndex + 1, 0, thisItem);
                     $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = $scope.selectedItemIndex;
                 }
                 else { //Nếu có rồi thì tăng thêm số lượng.
@@ -3606,10 +3680,13 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = $scope.selectedItemIndex;
                 }
             } else {
-                $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.push(flagItem);
+                $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.push(thisItem);
                 $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length - 1;
                 $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
             }
+            var saleOrder = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder;
+            $SunoSaleOrderCafe.deleteOrder(saleOrder.saleOrderUuid);
+            $SunoSaleOrderCafe.calculateOrder(saleOrder, saleOrder);
         } else {
             //Xử lý cho hàng hóa bình thường
 
@@ -3621,37 +3698,50 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             //} else {
             //    item.quantity = 1;
             //    item.newOrderCount = 1;
-            //    var flagItem = angular.copy(item);
-            //    flagItem.quantity = 1;
-            //    flagItem.newOrderCount = 1;
+            //    var thisItem = angular.copy(item);
+            //    thisItem.quantity = 1;
+            //    thisItem.newOrderCount = 1;
             //    if ($scope.hourService.isUse && !$scope.hourService.allProduct) {
             //        var itemIndexArr = findIndex($scope.hourService.itemArr, 'itemId', item.itemId);
             //        if (itemIndexArr != null) {
-            //            flagItem.isServiceItem = true;
-            //            $scope.startCounter(flagItem);
+            //            thisItem.isServiceItem = true;
+            //            $scope.startCounter(thisItem);
             //        }
             //    }
             //    if (printDimetion) {
-            //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.push(flagItem);
+            //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.push(thisItem);
             //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length - 1;
             //        $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
             //    } else {
-            //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.unshift(flagItem);
+            //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.unshift(thisItem);
             //        $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = 0;
             //    }
             //}
 
-            var cloneItem = angular.copy(item);
-            var itemIndex = $SunoSaleOrderCafe.saleOrder.orderDetails.findIndex(function (d) { return d.itemId == cloneItem.itemId; });
-            $SunoSaleOrderCafe.addItem(cloneItem, function () { $scope.$apply(); });
+            var thisItem = angular.copy(item);
+            var itemIndex = $SunoSaleOrderCafe.saleOrder.orderDetails.findIndex(function (d) { return d.itemId == thisItem.itemId; });
+            $SunoSaleOrderCafe.addItem(thisItem, function () { $scope.$apply(); });
             if (itemIndex > -1) {
                 $SunoSaleOrderCafe.saleOrder.orderDetails[itemIndex].newOrderCount++;
                 $SunoSaleOrderCafe.saleOrder.orderDetails[itemIndex].lastInputedIndex = itemIndex;
             }
             else {
-                var insertedItem = $SunoSaleOrderCafe.saleOrder.orderDetails.find(function (d) { return d.itemId == cloneItem.itemId; });
+                var insertedItem = $SunoSaleOrderCafe.saleOrder.orderDetails.find(function (d) { return d.itemId == thisItem.itemId; });
                 insertedItem.newOrderCount = 1;
-                insertedItem.lastInputedIndex = 0;
+                if ($scope.hourService.isUse && !$scope.hourService.allProduct) {
+                    var itemIndexArr = findIndex($scope.hourService.itemArr, 'itemId', thisItem.itemId);
+                    if (itemIndexArr != null) {
+                        insertedItem.isServiceItem = true;
+                        $scope.startCounter(insertedItem);
+                    }
+                }
+                //Nếu khi thêm món mới mà món mới đưa vào cuối danh sách thì cuộn thanh cuộn xuống
+                if (SunoGlobal.printer.ordering != 'desc') {
+                    $ionicScrollDelegate.$getByHandle('orders-details').scrollBottom();
+                    insertedItem.lastInputedIndex = $SunoSaleOrderCafe.saleOrder.orderDetails.length - 1;
+                } else {
+                    insertedItem.lastInputedIndex = 0;
+                }
             }
         }
 
@@ -3668,7 +3758,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             $scope.openTable($scope.tableIsSelected);
         }
 
-        updateTableToDB();
+        updateSelectedTableToDB();
     }
 
     $scope.printOrderBarKitchenInMobile = function (printDevice, saleOrder, BarItemSetting, setting) {
@@ -3854,7 +3944,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     console.log(e);
                 })
 
-                //($scope.tables.length > 1) ? $scope.leftviewStatus = false : $scope.leftviewStatus = true;
                 toaster.pop('success', "", 'Đã gửi đơn hàng xuống bếp!');
 
                 if ($scope.isSync) {
@@ -4003,7 +4092,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             }
         }
 
-        //($scope.tables.length > 1) ? $scope.leftviewStatus = false : $scope.leftviewStatus = true;
         toaster.pop('primary', "", 'Đã gửi đơn hàng xuống bếp!');
         $scope.modalPrintedList.hide();
     }
@@ -4081,7 +4169,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
 
     $scope.changeQuantity = function (num, item, $event) {
-        debugger;
         var qtyBeforeChange = item.quantity;
         var checkItem = angular.copy(item);
 
@@ -4098,9 +4185,9 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 $scope.tableIsSelected.tableOrder[0].saleOrder.sharedWith.push({ deviceID: deviceID, userID: SunoGlobal.userProfile.userId });
             }
 
+            $scope.pinItem = null;
             //Tính toán lại số lượng
             if (num > 0) {
-                $scope.pinItem = null;
                 item.newOrderCount = parseFloat(num) + parseFloat(item.newOrderCount);
                 item.newOrderCount = (item.newOrderCount === parseInt(item.newOrderCount, 10)) ? item.newOrderCount : parseFloat(item.newOrderCount).toFixed(2);
                 item.quantity = parseFloat(num) + parseFloat(item.quantity);
@@ -4158,11 +4245,10 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             var isActived = tableIsActive($scope.tableIsSelected);
             if (!isActived) {
                 $scope.tableIsSelected.tableStatus = 0;
-                // $scope.tableIsSelected.startTime = null;
             }
 
             //Lưu xuống DB Local
-            updateTableToDB();
+            updateSelectedTableToDB();
 
             //Đồng bộ đơn hàng.
             if (num < 0 && $scope.isSync) {
@@ -4588,6 +4674,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $scope.pinItem = null;
         $scope.selectedItem = i;
         $scope.showOption = true;
+        $scope.showOrderDetails = false;
         $scope.selectedItemIndex = itemIndex;
         // var itemIndex = findIndex($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails, 'itemId', i.itemId);
         $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.lastInputedIndex = itemIndex;
@@ -4624,9 +4711,11 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
     $scope.showOrderDetails = false;
 
     $scope.openOrderDetails = function () {
+        debugger;
+        $scope.pinItem = null;
+        $scope.showOption = false;
         if ($scope.tableIsSelected && $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected] && $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.orderDetails.length > 0) {
             $scope.showOrderDetails = !$scope.showOrderDetails;
-
         }
     }
     $scope.closeOrderDetails = function () {
@@ -4780,6 +4869,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.customer = c;
                 toaster.pop('success', "", 'Đã thêm khách hàng mới thành công.');
                 $scope.modalCreateCustomer.hide();
+                $scope.$apply();
             })
             .catch(function (e) {
                 toaster.pop('error', "", error.responseStatus.message);
@@ -4836,7 +4926,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             $SunoRequest.makeRestful(url, method, d)
                 .then(function (data) {
                     $scope.showOrderDetails = false;
-                    //($scope.tables.length > 1) ? $scope.leftviewStatus = false : $scope.leftviewStatus = true;
                     if ($scope.receiptVoucher.length > 0 && $scope.receiptVoucher[0].amount > 0) {
                         var url = Api.receipt;
                         var method = 'POST';
@@ -4849,6 +4938,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         $SunoRequest.makeRestful(url, method, d1)
                             .then(function (data) {
                                 $scope.receiptVoucher = [];
+                                $scope.$apply();
                             })
                             .catch(function (e) {
                                 console.log(e);
@@ -4974,7 +5064,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     var tableStatus = tableIsActive($scope.tableIsSelected);
                     if (tableStatus == false) {
                         $scope.tableIsSelected.tableStatus = 0;
-                        // $scope.tableIsSelected.startTime = null;
                     }
                     $scope.cancelOrder();
                 })
@@ -4996,7 +5085,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             //asynRequest($state, $http, 'POST', url, $scope.token.token, 'json', d, function (data, status) {
             //    if (data) {
             //        $scope.showOrderDetails = false;
-            //        //($scope.tables.length > 1) ? $scope.leftviewStatus = false : $scope.leftviewStatus = true;
             //        if ($scope.receiptVoucher.length > 0 && $scope.receiptVoucher[0].amount > 0) {
             //            var url = Api.receipt;
             //            var d = {
@@ -5133,7 +5221,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             //        var tableStatus = tableIsActive($scope.tableIsSelected);
             //        if (tableStatus == false) {
             //            $scope.tableIsSelected.tableStatus = 0;
-            //            // $scope.tableIsSelected.startTime = null;
             //        }
             //        $scope.cancelOrder();
             //    }
@@ -5354,8 +5441,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         //revision: 0,
                         orderDetails: []
                     }
-                }],
-                startTime: null
+                }]
             }
             angular.copy(saleOrder, tableTAW.tableOrder[0].saleOrder);
             $scope.newTables.push(tableTAW);
@@ -5384,8 +5470,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                                 //revision: 0,
                                 orderDetails: []
                             }
-                        }],
-                        startTime: null
+                        }]
                     }
                     angular.copy(saleOrder, t.tableOrder[0].saleOrder);
                     $scope.newTables.push(t);
@@ -5864,6 +5949,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 $SunoRequest.makeRestful(url, method, data)
                     .then(function (data) {
                         order.details = data.saleOrder.orderDetails;
+                        $scope.$apply();
                     })
                     .catch(function (e) {
                         toaster.pop('error', "", 'Lấy thông tin về chi tiết đơn hàng không thành công! Vui lòng thử lại');
@@ -5925,7 +6011,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         var url = Api.storeReport + 'limit=10000&fromDate=' + fromDate + '&toDate=' + toDate;
         var method = 'GET';
         var d = null;
-        $SunoRequest.makeRestful(url, method, d)
+        return $SunoRequest.makeRestful(url, method, d)
             .then(function (data) {
                 $scope.reports = data;
                 for (var x = 0; x < data.storeSales.length; x++) {
@@ -5940,6 +6026,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 
                 filterReportByStore($scope.reports);
                 if ($scope.permissionIndex < 0) $scope.filterBySale($scope.userSession);
+                $scope.$apply();
                 return null;
             })
             .catch(function (e) {
@@ -5979,6 +6066,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                 if (data.value != "") {
                     var rs = JSON.parse(data.value);
                     $scope.balance = rs;
+                    $scope.$apply();
                     // console.log(rs);
                 } else {
                     $scope.balance = 0;
@@ -6483,6 +6571,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     //window.localStorage.removeItem('shiftId');
 
                 }
+                $scope.$apply();
                 if ($scope.modalSyncSetting) $scope.modalSyncSetting.hide();
                 window.location.reload(true);
             })
@@ -6520,8 +6609,8 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         calculateTotal($scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder);
         $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.payments[0].amount = $scope.tableIsSelected.tableOrder[$scope.orderIndexIsSelected].saleOrder.total;
         if ($scope.tables && $scope.tables.length > 0 && $scope.currentStore.storeID) {
-            utils.debounce(updateTableToDB, 300, false)();
-            //updateTableToDB();
+            utils.debounce(updateSelectedTableToDB, 300, false)();
+            //updateSelectedTableToDB();
             //LSFactory.set($scope.currentStore.storeID, {
             //    tables: $scope.tables,
             //    zone: $scope.tableMap
@@ -6585,8 +6674,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         }
         if (item.startTime) {
             if ($scope.tables && $scope.tables.length > 0 && $scope.currentStore.storeID) {
-                //utils.debounce(updateTableToDB, 300, false)(); //updateTableToDB();
-                updateTableToDB();
+                updateSelectedTableToDB();
                 //LSFactory.set($scope.currentStore.storeID, {
                 //    tables: $scope.tables,
                 //    zone: $scope.tableMap
@@ -6615,6 +6703,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $SunoRequest.makeRestful(url, method, d)
             .then(function (data) {
                 $scope.searchProductList = data.items;
+                $scope.$apply();
             })
             .catch(function (e) {
                 console.log(e);
@@ -6700,6 +6789,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         $scope.BarItemSetting.push(data.items[j]);
                     }
                 }
+                $scope.$apply();
             })
             .catch(function (e) {
                 console.log(e);
@@ -6813,6 +6903,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                         }
                     }
                     toaster.pop('success', "", 'Đã lưu thiết lập dịch vụ tính giờ!');
+                    $scope.$apply();
                     return $scope.closeSyncSetting();
                 })
                 .catch(function (e) {
@@ -6884,6 +6975,7 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
                     toaster.pop('success', "", 'Đã in hoá đơn thành công.');
                 }
                 audit(5, 'In lại hóa đơn ' + printOrder.saleOrderCode + ', giá trị đơn hàng: ' + $filter('number')(printOrder.total, 0), '');
+                $scope.$apply();
             })
             .catch(function (e) {
                 console.log(e);
@@ -6994,13 +7086,8 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             description: 'Mở thực đơn / sơ đồ bàn',
             allowIn: ['INPUT', 'SELECT', 'TEXTAREA'],
             callback: function () {
-                if ($scope.showOrderDetails) {
-                    $scope.showOrderDetails = false;
-                }
+                $scope.showOrderDetails = false;
                 $scope.switchLayout();
-                //if (!$scope.leftviewStatus) {
-                //    $scope.onSearchField = false;
-                //}
             }
         });
 
@@ -7027,7 +7114,6 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
             allowIn: ['INPUT', 'SELECT', 'TEXTAREA'],
             callback: function () {
                 $scope.isUseKeyboard = true;
-                //var focus = $('#productSearchInput').is(':focus');
                 if (!$scope.onSearchField) {
                     $scope.changeTableOrItemByHotKey(1);
                 }
@@ -7473,60 +7559,107 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
         $scope.promotionPopOver.hide();
     }
 
-    var updateTableToDB = function () {
-        //console.log('fired');
-        ////debugger;
-        //var id = $scope.tableIsSelected.tableId;
-        var store = $scope.currentStore.storeID;
-        if (!$scope.tableIsSelected) return;
-        var tableUuid = $scope.tableIsSelected.tableUuid;
+    ////Hàm cập nhật 
+    //var updateSelectedTableToDB = function () {
+    //    if (!$scope.tableIsSelected) return;
+    //    var tableUuid = $scope.tableIsSelected.tableUuid;
+    //    var store = $scope.currentStore.storeID;
+    //    DBTables.$queryDoc({
+    //        selector: {
+    //            'store': { $eq: store },
+    //            'tableUuid': { $eq: tableUuid }
+    //        },
+    //        fields: ['_id', '_rev']
+    //    }).then(function (data) {
+    //        //Check docs length để tránh trường hợp khi client dùng lần đầu tiên tạo phòng bàn thì tableIsSelected thay đổi
+    //        //dẫn đến callback này gọi trong khi chưa có dữ liệu dưới DB Local gây lỗi _id of undefined.
+    //        if (data.docs.length > 0) {
+    //            var table = JSON.parse(JSON.stringify($scope.tableIsSelected));
+    //            table._id = data.docs[0]._id;
+    //            table._rev = data.docs[0]._rev;
+    //            table.store = store;
+    //            return DBTables.$addDoc(table);
+    //        }
+    //        return null;
+    //    }).then(function (data) {
+    //        //console.log(data);
+    //        return null;
+    //    }).catch(function (error) {
+    //        //Thử cập nhật lại thông tin của bàn đó sau khi cập nhật thất bại ở then thứ 1.
+    //        //Do 2 watch Group và Collection đôi lúc chạy song song, nhưng trong PouchDB cập nhật phải có _rev.
+    //        //Sau khi callback của 1 trong 2 watch trên đã cập nhật thì _rev sẽ bị thay đổi
+    //        //Gây ra lỗi conflict _rev ở callback của watch chạy sau, do _rev đã cũ và ko tồn tại.
+    //        //Khắc phục bằng cách thử gọi để lấy _rev mới sau đó cập nhật lại.
+    //        return DBTables.$queryDoc({
+    //            selector: {
+    //                'store': { $eq: store },
+    //                'tableUuid': { $eq: tableUuid }
+    //            },
+    //            fields: ['_id', '_rev']
+    //        });
+    //    }).then(function (data) {
+    //        //Kiểm tra này để check trường hợp then thứ 1 thực hiện thành công ko nhảy vào catch 1 sẽ nhảy thẳng xuống then này
+    //        //Gây ra lỗi Can not read property '...' of undefined. Ở then thứ 2 return null.
+    //        if (data) { //&& data.docs && data.docs.length > 0) {
+    //            var table = JSON.parse(JSON.stringify($scope.tableIsSelected));
+    //            table._id = data.docs[0]._id;
+    //            table._rev = data.docs[0]._rev;
+    //            table.store = store;
+    //            return DBTables.$addDoc(table);
+    //        } else return null;
+    //    }).catch(function (error) {
+    //        console.log(error);
+    //    });
+    //};
+
+    //Hàm cập nhật bàn vào DB với bàn đang được chọn.
+    var updateSelectedTableToDB = function () {
+        var tb = $scope.tableIsSelected;
+        updateTableToDB(tb);
+    }
+
+    //Hàm cập nhật bàn vào DB với 1 bàn tùy ý lúc truyền vào.
+    var updateTableToDB = function (tb) {
         DBTables.$queryDoc({
             selector: {
-                'store': { $eq: store },
-                'tableUuid': { $eq: tableUuid }
+                'store': { $eq: $scope.currentStore.storeID },
+                'tableUuid': { $eq: tb.tableUuid }
             },
             fields: ['_id', '_rev']
-        }).then(function (data) {
-            //Check docs length để tránh trường hợp khi client dùng lần đầu tiên tạo phòng bàn thì tableIsSelected thay đổi
-            //dẫn đến callback này gọi trong khi chưa có dữ liệu dưới DB Local gây lỗi _id of undefined.
-            if (data.docs.length > 0) {
-                var table = JSON.parse(JSON.stringify($scope.tableIsSelected));
-                table._id = data.docs[0]._id;
-                table._rev = data.docs[0]._rev;
-                table.store = store;
-                return DBTables.$addDoc(table);
-            }
-            return null;
-        }).then(function (data) {
+        })
+        .then(function (data) {
+            var table = angular.copy(tb);
+            table._id = data.docs[0]._id;
+            table._rev = data.docs[0]._rev;
+            table.store = $scope.currentStore.storeID;
+            return DBTables.$addDoc(table);
+        })
+        .then(function (data) {
+            //log for debug
             //console.log(data);
-            return null;
-        }).catch(function (error) {
-            //Thử cập nhật lại thông tin của bàn đó sau khi cập nhật thất bại ở then thứ 1.
-            //Do 2 watch Group và Collection đôi lúc chạy song song, nhưng trong PouchDB cập nhật phải có _rev.
-            //Sau khi callback của 1 trong 2 watch trên đã cập nhật thì _rev sẽ bị thay đổi
-            //Gây ra lỗi conflict _rev ở callback của watch chạy sau, do _rev đã cũ và ko tồn tại.
-            //Khắc phục bằng cách thử gọi để lấy _rev mới sau đó cập nhật lại.
-            return DBTables.$queryDoc({
+        })
+        .catch(function (error) {
+            //Nếu bị conflict thì retry lại
+            DBTables.$queryDoc({
                 selector: {
-                    'store': { $eq: store },
-                    'tableUuid': { $eq: tableUuid }
+                    'store': { $eq: $scope.currentStore.storeID },
+                    'tableUuid': { $eq: tb.tableUuid }
                 },
                 fields: ['_id', '_rev']
-            });
-        }).then(function (data) {
-            //Kiểm tra này để check trường hợp then thứ 1 thực hiện thành công ko nhảy vào catch 1 sẽ nhảy thẳng xuống then này
-            //Gây ra lỗi Can not read property '...' of undefined. Ở then thứ 2 return null.
-            if (data) { //&& data.docs && data.docs.length > 0) {
-                var table = JSON.parse(JSON.stringify($scope.tableIsSelected));
+            })
+            .then(function (data) {
+                var table = angular.copy(tb);
                 table._id = data.docs[0]._id;
                 table._rev = data.docs[0]._rev;
-                table.store = store;
+                table.store = $scope.currentStore.storeID;
                 return DBTables.$addDoc(table);
-            } else return null;
-        }).catch(function (error) {
-            console.log(error);
+            })
+            .catch(function (e) {
+                console.log(e);
+            })
         });
-    };
+    }
+
 
     var refreshToken = function () {
         return new Promise(function (resolve, reject) {
@@ -7559,6 +7692,9 @@ function PosCtrl($location, $ionicPosition, $ionicSideMenuDelegate, $ionicHistor
 //Set lại accessToken và refreshToken khi hết hạn.
 //Đọc sơ đồ thì API, kiểm tra dưới Local
 
-//Bật OfflineCache nếu tìm kiếm hàng hóa lúc Offline thì tìm dưới DB Local.
-//Lúc load lại app thì lưu lại dữ liệu mới.
-//Lúc thanh toán thì cho thanh toán và lưu dữ liệu chưa đồng bộ xuống dưới DB Local.
+
+//permissions
+//set lại thời gian
+//merge
+//print
+//store granted.

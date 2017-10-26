@@ -86,7 +86,7 @@
             <ion-list class="orders-details" ng-show="!showOption" tabindex="2">
                 <ion-item style="cursor: pointer; overflow:visible;" class="item item-icon-left border-0px" ng-class="{'warning': $index == tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.lastInputedIndex, 'blu-dark': i.isChild != null}" ng-repeat="i in tableIsSelected.tableOrder[orderIndexIsSelected].saleOrder.orderDetails track by $index" on-tap="openItemOption(i,$index)">
                     <div ng-if="i.isChild" style="position: absolute; top: -12px; right: -10px; width: 25px; height: 25px; z-index: 5; display: none;"><i class="ion-paperclip" style="font-size: 25px;"></i></div>
-                    <div ng-show="!i.timer && !i.endTime">
+                    <div ng-show="!i.timer && !i.endTime && !hourService.allProduct">
                         <span class="icon" style="border: 0px solid green;" ng-show="i.newOrderCount==0" on-tap="changeQuantity(1,i,$event)" ng-class="{'font20': getQuatityLength(p.quantity) > 2,'font16': getQuatityLength(p.quantity) > 3,'font14': getQuatityLength(p.quantity) > 5}">
                             {{i.quantity}}
                         </span>
@@ -102,7 +102,7 @@
                             <button on-tap="fastRemoveItem(1, i, $event)" style="background-color: transparent;border: none; z-index: 1;"><i class="ion-chevron-down"></i></button>
                         </div>
                     </div>
-                    <div ng-show="i.timer || i.endTime">
+                    <div ng-show="i.timer || i.endTime || hourService.allProduct">
                         <span class="icon">
                             <span><i class="ion-clock font30 balanced"></i></span>
                             <span class="font14 balanced" ng-show="i.newOrderCount>0"><br />+</span>
@@ -132,7 +132,7 @@
                             <span ng-show="!i.timer" class="right font14 assertive">{{i.blockCount}}</span>
                         </div>
                     </div>
-                    <div class="pin-btn" ng-show="!i.isChild && isUngroupItem" style="position: absolute; right: 0px;">
+                    <div class="pin-btn" ng-show="!i.isChild && isUngroupItem && !i.isServiceItem" style="position: absolute; right: 0px;">
                         <button class="button-small button button-clear" ng-class="{'button-assertive': selectedItemIndex == $index && pinItem}" on-tap="pin(i,$index,$event)" title="Thêm tem/nhãn"><i class="ion-pin font20"></i></button>
                     </div>
                 </ion-item>
@@ -200,7 +200,7 @@
                   <button class="button button-assertive button-small" on-tap="removeItem(selectedItem.quantity)" ng-show="selectedItem.isServiceItem || hourService.allProduct && selectedItem.startTime"><i class="ion-ios-trash"></i> Xóa</button>
                   <button class="button button-assertive button-small" on-tap="openChangeQuantity(1)" ng-hide="selectedItem.isServiceItem || hourService.allProduct && hourService.isUse && selectedItem.startTime"><i class="ion-minus-round"></i></button>
                   <button class="button button-calm button-small" on-tap="openChangeQuantity(2)" ng-hide="selectedItem.isServiceItem || hourService.allProduct && hourService.isUse && selectedItem.startTime"><i class="ion-plus-round"></i></button>
-                  <button class="button button-positive button-small hidden-480" on-tap="openChangeQuantity(3)" ng-show="settings.saleSetting.allowPriceModified" on-tap="showChangePrice=true">SL mới</button>
+                  <button class="button button-positive button-small hidden-480" on-tap="openChangeQuantity(3)" ng-hide="selectedItem.isServiceItem || hourService.allProduct && hourService.isUse && selectedItem.startTime">SL mới</button>
                   <button class="button button-balanced button-small" ng-show="settings.saleSetting.allowPriceModified" on-tap="showChangePrice=true"><i class="ion-social-usd"></i> Giá mới</button>
                 </div>
               </div>
@@ -336,10 +336,10 @@
           <div class="menu-categories col col-20 left" ng-show="showCategories && !isInTable">
             <ion-scroll delegate-handle="menu-categories" class="right-content-height">
               <div class="list zone-list">
-                <button class="button button-light button-full button-small" on-tap="getProductItems('', '')" ng-class="{'button-suno': !currentCategory}">
+                <button class="button button-light button-full button-small" style="font-weight: bold; text-align:center;" on-tap="getProductItems('', '')" ng-class="{'button-suno': !currentCategory}">
                   MENU
                 </button>
-                <button class="button button-light button-full button-small" ng-repeat="cat in categories track by cat.categoryId" on-tap="getProductItems(cat.categoryId, cat.categoryName)" ng-class="{'button-suno': currentCategory == cat.categoryId}">
+                <button class="button button-light button-full button-small" style="font-weight: bold;" ng-repeat="cat in categories track by cat.categoryId" on-tap="getProductItems(cat.categoryId, cat.categoryName)" ng-class="{'button-suno': currentCategory == cat.categoryId}">
                   {{cat.categoryName}}
                 </button>
               </div>
@@ -364,7 +364,7 @@
           <div class="menu-categories col col-20 left" ng-show="showCategories && isInTable">
             <ion-scroll delegate-handle="zone" class="right-content-height">
               <div class="list zone-list">
-                <button class="button button-light button-full button-small" style="font-weight: bold" on-tap="filterTables('','')" ng-class="{'button-suno': buttonStatus===null}"> KHU VỰC</button>
+                <button class="button button-light button-full button-small" style="font-weight: bold; text-align:center;" on-tap="filterTables('','')" ng-class="{'button-suno': buttonStatus===null}"> KHU VỰC</button>
                 <button class="button button-light button-full button-small" style="font-weight: bold" ng-repeat="z in tableMap track by $index" on-tap="filterTables('zone',z)" ng-class="{'button-suno': buttonStatus == z , 'b-color-1' : calcolor($index+1) == 1,'b-color-2' : calcolor($index+1) == 2,'b-color-3' : calcolor($index+1) == 3,'b-color-4' : calcolor($index+1) == 4,'b-color-5' : calcolor($index+1) == 0}"> {{z.zone}}</button>
               </div>
             </ion-scroll>

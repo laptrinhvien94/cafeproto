@@ -34,7 +34,7 @@ var SunoGlobal = {
         saleReportSetting: 0
     },
     printer: {
-        ordering: 'desc'
+        ordering: 'asc'
     },
     result: {
         isSuccess: true,
